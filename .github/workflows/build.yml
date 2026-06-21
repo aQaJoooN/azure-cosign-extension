@@ -1,0 +1,150 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  EXTENSION_ID: cosign-extension
+  PUBLISHER_ID: aQaJoooN
+
+jobs:
+  build:
+    name: Build Extension
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install tfx-cli
+        run: npm install -g tfx-cli
+
+      - name: Get version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            VERSION="1.0.${{ github.run_number }}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
+          echo "Building version: $VERSION"
+
+      - name: Update version in manifests
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Update vss-extension.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" vss-extension.json
+          
+          # Update task.json (Major.Minor.Patch format)
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          
+          sed -i "s/\"Major\": [0-9]*/\"Major\": $MAJOR/" tasks/CosignSign/task.json
+          sed -i "s/\"Minor\": [0-9]*/\"Minor\": $MINOR/" tasks/CosignSign/task.json
+          sed -i "s/\"Patch\": [0-9]*/\"Patch\": $PATCH/" tasks/CosignSign/task.json
+
+      - name: Validate JSON files
+        run: |
+          echo "Validating JSON files..."
+          for file in vss-extension.json tasks/CosignSign/task.json service-endpoint/cosign-endpoint.json; do
+            if ! jq empty "$file" 2>/dev/null; then
+              echo "❌ Invalid JSON: $file"
+              exit 1
+            fi
+            echo "✓ Valid: $file"
+          done
+
+      - name: Build extension
+        run: |
+          tfx extension create --manifest-globs vss-extension.json --output-path ./dist
+          echo "Extension built successfully"
+
+      - name: List artifacts
+        run: |
+          echo "Generated files:"
+          ls -lh dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-package
+          path: dist/*.vsix
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-package
+          path: dist
+
+      - name: Get version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "## Version $VERSION" > release-notes.md
+          echo "" >> release-notes.md
+          echo "### Features" >> release-notes.md
+          echo "- Sign container images with Cosign" >> release-notes.md
+          echo "- Custom service connection for secure credential storage" >> release-notes.md
+          echo "- Air-gapped environment support" >> release-notes.md
+          echo "- Automatic signature verification" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "### Installation" >> release-notes.md
+          echo "1. Download the \`.vsix\` file below" >> release-notes.md
+          echo "2. Upload to your Azure DevOps Server" >> release-notes.md
+          echo "3. See [DEPLOYMENT.md](DEPLOYMENT.md) for details" >> release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          files: dist/*.vsix
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        run: |
+          echo "🎉 Release v${{ steps.version.outputs.version }} created successfully!"
+          echo "📦 VSIX package uploaded to GitHub Releases"

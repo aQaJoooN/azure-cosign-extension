@@ -1,0 +1,81 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+  "id": "e8d0f2b0-1111-4444-9999-123456789000",
+  "name": "CosignSign",
+  "friendlyName": "Sign Container Image with Cosign",
+  "description": "Signs a container image using Cosign with private key authentication (air-gapped compatible)",
+  "author": "aQaJoooN",
+  "helpMarkDown": "[More Information](https://github.com/sigstore/cosign) - Signs container images using Cosign in air-gapped environments. Automatically resolves image digest, signs it, and verifies the signature.",
+  "category": "Utility",
+  "version": {
+    "Major": 1,
+    "Minor": 0,
+    "Patch": 0
+  },
+  "visibility": [
+    "Build",
+    "Release"
+  ],
+  "demands": [],
+  "minimumAgentVersion": "2.144.0",
+  "instanceNameFormat": "Sign image $(imageName):$(imageTag)",
+  "groups": [
+    {
+      "name": "advanced",
+      "displayName": "Advanced",
+      "isExpanded": false
+    }
+  ],
+  "inputs": [
+    {
+      "name": "cosignService",
+      "type": "connectedService:cosignServiceConnection",
+      "label": "Cosign Service Connection",
+      "defaultValue": "",
+      "required": true,
+      "helpMarkDown": "Select the service connection containing Cosign private key and password"
+    },
+    {
+      "name": "imageName",
+      "type": "string",
+      "label": "Image Name",
+      "defaultValue": "",
+      "required": true,
+      "helpMarkDown": "Container image repository name (e.g., myregistry.azurecr.io/myapp or harbor.company.com/project/image)"
+    },
+    {
+      "name": "imageTag",
+      "type": "string",
+      "label": "Image Tag",
+      "defaultValue": "latest",
+      "required": true,
+      "helpMarkDown": "Image tag to sign (e.g., latest, v1.0.0, $(Build.BuildId))"
+    },
+    {
+      "name": "allowInsecureRegistry",
+      "type": "boolean",
+      "label": "Allow Insecure Registry",
+      "defaultValue": "true",
+      "required": false,
+      "helpMarkDown": "Allow connections to insecure (HTTP) registries",
+      "groupName": "advanced"
+    },
+    {
+      "name": "verifySignature",
+      "type": "boolean",
+      "label": "Verify Signature After Signing",
+      "defaultValue": "true",
+      "required": false,
+      "helpMarkDown": "Verify the signature immediately after signing",
+      "groupName": "advanced"
+    }
+  ],
+  "execution": {
+    "Bash": {
+      "target": "sign.sh",
+      "platforms": [
+        "linux"
+      ]
+    }
+  }
+}

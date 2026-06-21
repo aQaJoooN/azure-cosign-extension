@@ -1,0 +1,89 @@
+{
+  "manifestVersion": 1,
+  "id": "cosign-extension",
+  "name": "Cosign Image Signing",
+  "version": "1.0.0",
+  "publisher": "aQaJoooN",
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "description": "Sign container images with Cosign in air-gapped environments. Includes custom service connection for secure credential storage and Azure DevOps task for automated signing.",
+  "categories": [
+    "Azure Pipelines"
+  ],
+  "tags": [
+    "cosign",
+    "container",
+    "docker",
+    "security",
+    "signing",
+    "sigstore"
+  ],
+  "icons": {
+    "default": "icon.png"
+  },
+  "content": {
+    "details": {
+      "path": "README.md"
+    }
+  },
+  "links": {
+    "home": {
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git"
+    },
+    "support": {
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git/issues"
+    },
+    "repository": {
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git"
+    },
+    "issues": {
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git/issues"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git"
+  },
+  "contributions": [
+    {
+      "id": "cosign-service-endpoint",
+      "type": "ms.vss-endpoint.service-endpoint-type",
+      "targets": [
+        "ms.vss-endpoint.endpoint-types"
+      ],
+      "properties": {
+        "name": "cosignServiceConnection",
+        "displayName": "Cosign Signing Connection",
+        "url": {
+          "displayName": "Connection Name",
+          "helpText": "Friendly name for this Cosign connection"
+        },
+        "helpMarkDown": "Service connection for storing Cosign private key and password securely"
+      }
+    },
+    {
+      "id": "cosign-sign-task",
+      "type": "ms.vss-distributed-task.task",
+      "targets": [
+        "ms.vss-distributed-task.tasks"
+      ],
+      "properties": {
+        "name": "tasks/CosignSign"
+      }
+    }
+  ],
+  "files": [
+    {
+      "path": "service-endpoint"
+    },
+    {
+      "path": "tasks"
+    },
+    {
+      "path": "README.md"
+    }
+  ]
+}
