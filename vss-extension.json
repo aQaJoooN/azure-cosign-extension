@@ -58,10 +58,50 @@
         "name": "cosignServiceConnection",
         "displayName": "Cosign Signing Connection",
         "url": {
-          "displayName": "Connection Name",
-          "helpText": "Friendly name for this Cosign connection"
+          "displayName": "Server URL",
+          "helpText": "Registry URL (optional, leave empty if not needed)"
         },
-        "helpMarkDown": "Service connection for storing Cosign private key and password securely"
+        "authenticationSchemes": [
+          {
+            "type": "ms.vss-endpoint.endpoint-auth-scheme-none",
+            "inputDescriptors": [
+              {
+                "id": "cosignPrivateKey",
+                "name": "Cosign Private Key",
+                "description": "The content of the Cosign private key file (cosign.key)",
+                "inputMode": "textArea",
+                "isConfidential": true,
+                "validation": {
+                  "isRequired": true,
+                  "dataType": "string"
+                }
+              },
+              {
+                "id": "cosignPublicKey",
+                "name": "Cosign Public Key",
+                "description": "The content of the Cosign public key file (cosign.pub)",
+                "inputMode": "textArea",
+                "isConfidential": false,
+                "validation": {
+                  "isRequired": true,
+                  "dataType": "string"
+                }
+              },
+              {
+                "id": "cosignPassword",
+                "name": "Cosign Password",
+                "description": "Password for the Cosign private key",
+                "inputMode": "passwordBox",
+                "isConfidential": true,
+                "validation": {
+                  "isRequired": true,
+                  "dataType": "string"
+                }
+              }
+            ]
+          }
+        ],
+        "helpMarkDown": "Configure Cosign signing credentials for container image signing in air-gapped environments"
       }
     },
     {
@@ -76,9 +116,6 @@
     }
   ],
   "files": [
-    {
-      "path": "service-endpoint"
-    },
     {
       "path": "tasks"
     },
