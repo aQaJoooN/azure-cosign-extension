@@ -31,21 +31,21 @@
   },
   "links": {
     "home": {
-      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git"
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension"
     },
     "support": {
-      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git/issues"
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension/issues"
     },
     "repository": {
-      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git"
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension"
     },
     "issues": {
-      "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git/issues"
+      "uri": "https://github.com/aQaJoooN/azure-cosign-extension/issues"
     }
   },
   "repository": {
     "type": "git",
-    "uri": "https://github.com/aQaJoooN/azure-cosign-extension.git"
+    "uri": "https://github.com/aQaJoooN/azure-cosign-extension"
   },
   "contributions": [
     {
