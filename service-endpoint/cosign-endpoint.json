@@ -9,7 +9,8 @@
   },
   "authenticationSchemes": [
     {
-      "type": "ms.vss-endpoint.endpoint-auth-scheme-none",
+      "type": "ms.vss-endpoint.endpoint-auth-scheme-basic",
+      "displayName": "Cosign Credentials",
       "inputDescriptors": [
         {
           "id": "cosignPrivateKey",
