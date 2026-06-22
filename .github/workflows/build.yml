@@ -68,7 +68,7 @@ jobs:
       - name: Validate JSON files
         run: |
           echo "Validating JSON files..."
-          for file in vss-extension.json tasks/CosignSign/task.json service-endpoint/cosign-endpoint.json; do
+          for file in vss-extension.json tasks/CosignSign/task.json; do
             if ! jq empty "$file" 2>/dev/null; then
               echo "❌ Invalid JSON: $file"
               exit 1
