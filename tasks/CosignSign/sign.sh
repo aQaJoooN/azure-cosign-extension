@@ -304,7 +304,7 @@ fi
 # Try to get digest from local image first
 DIGEST_REF=""
 if docker inspect "$IMAGE_REF" &> /dev/null; then
-    DIGEST_REF="$(docker inspect --format='{{join .RepoDigests "\n"}}' "${IMAGE_REF}" 2>/dev/null | head -n 1 || true)"
+    DIGEST_REF="$(docker inspect --format='{{join .RepoDigests "\n"}}' "${IMAGE_REF}" 2>/dev/null | grep $(echo "${IMAGE_REF}" | cut -d ":" -f 1) || true)"
 fi
 
 # If local inspection fails, try manifest inspect
