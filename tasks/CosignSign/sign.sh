@@ -116,7 +116,7 @@ cleanup() {
     local exit_code=$?
     
     echo ""
-    echo "Step 9: Cleaning up..."
+    echo "Cleaning up..."
     
     # Docker logout
     if [[ -n "${DOCKER_LOGIN_URL:-}" ]]; then
@@ -217,8 +217,11 @@ DOCKER_REGISTRY_URL="${DOCKER_REGISTRY_URL:-}"
 DOCKER_USERNAME="${DOCKER_REGISTRY_USERNAME:-}"
 DOCKER_PASSWORD="${DOCKER_REGISTRY_PASSWORD:-}"
 
-echo "DEBUG: Docker Registry URL from service connection: '${DOCKER_REGISTRY_URL}'"
-echo "DEBUG: Docker Username: '${DOCKER_USERNAME}'"
+# Check if docker is available
+if ! command -v docker &> /dev/null; then
+    echo "##vso[task.logissue type=error]Docker command not found. Please ensure Docker is installed on the agent."
+    exit 1
+fi
 
 if [[ -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
     echo "##vso[task.logissue type=error]Docker registry credentials not found"
@@ -234,7 +237,7 @@ if [[ -z "$DOCKER_REGISTRY_URL" ]] || [[ "$DOCKER_REGISTRY_URL" == *"hub.docker.
     # Extract registry from image name (everything before first /)
     if [[ "$IMAGE_NAME" =~ ^([^/]+)/(.+)$ ]]; then
         DOCKER_LOGIN_URL="${BASH_REMATCH[1]}"
-        echo "Extracted registry from image name: ${DOCKER_LOGIN_URL}"
+        echo "Using registry from image name: ${DOCKER_LOGIN_URL}"
     else
         echo "##vso[task.logissue type=error]Cannot determine registry URL from image name"
         exit 1
@@ -247,10 +250,8 @@ else
     echo "Using registry from service connection: ${DOCKER_LOGIN_URL}"
 fi
 
-echo "Attempting Docker login to: ${DOCKER_LOGIN_URL}"
-
-if echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_LOGIN_URL}" -u "${DOCKER_USERNAME}" --password-stdin 2>&1; then
-    echo "✓ Docker login successful to ${DOCKER_LOGIN_URL}"
+if echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_LOGIN_URL}" -u "${DOCKER_USERNAME}" --password-stdin 2>&1 | grep -v "WARNING"; then
+    echo "✓ Docker login successful"
 else
     echo "##vso[task.logissue type=error]Docker login failed to ${DOCKER_LOGIN_URL}"
     exit 1
@@ -258,10 +259,38 @@ fi
 echo ""
 
 ########################################
-# Step 7: Find image digest
+# Step 7: Pull image if not present
 ########################################
 
-echo "Step 7: Resolving image digest..."
+echo "Step 7: Checking if image exists locally..."
+
+IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
+
+# Check if docker is available
+if ! command -v docker &> /dev/null; then
+    echo "##vso[task.logissue type=error]Docker command not found. Please ensure Docker is installed on the agent."
+    exit 1
+fi
+
+if ! docker inspect "$IMAGE_REF" &> /dev/null; then
+    echo "Image not found locally, pulling from registry..."
+    
+    if docker pull "$IMAGE_REF"; then
+        echo "✓ Image pulled successfully"
+    else
+        echo "##vso[task.logissue type=error]Failed to pull image. Ensure the image exists in the registry."
+        exit 1
+    fi
+else
+    echo "✓ Image found locally"
+fi
+echo ""
+
+########################################
+# Step 8: Find image digest
+########################################
+
+echo "Step 8: Resolving image digest..."
 
 IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
 echo "Image reference: ${IMAGE_REF}"
@@ -296,10 +325,10 @@ echo "✓ Resolved digest reference: ${DIGEST_REF}"
 echo ""
 
 ########################################
-# Step 8: Sign the image
+# Step 9: Sign the image
 ########################################
 
-echo "Step 8: Signing image with Cosign..."
+echo "Step 9: Signing image with Cosign..."
 
 COSIGN_ARGS=(
     "sign"
@@ -327,7 +356,7 @@ echo ""
 ########################################
 
 if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
-    echo "Step 8.1: Verifying signature..."
+    echo "Step 9.1: Verifying signature..."
     
     VERIFY_ARGS=(
         "verify"
