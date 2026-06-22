@@ -41,7 +41,7 @@
       "label": "Image Name",
       "defaultValue": "",
       "required": true,
-      "helpMarkDown": "Container image repository name (e.g., myregistry.azurecr.io/myapp or harbor.company.com/project/image)"
+      "helpMarkDown": "Container image name without registry (e.g., project/myapp). Registry URL from service connection will be prepended automatically."
     },
     {
       "name": "imageTag",
@@ -71,11 +71,8 @@
     }
   ],
   "execution": {
-    "Bash": {
-      "target": "sign.sh",
-      "platforms": [
-        "linux"
-      ]
+    "Bash3": {
+      "target": "sign.sh"
     }
   }
 }

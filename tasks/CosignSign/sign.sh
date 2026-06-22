@@ -20,7 +20,31 @@ ENDPOINT_ID="${INPUT_COSIGNSERVICE}"
 ALLOW_INSECURE="${INPUT_ALLOWINSECUREREGISTRY:-true}"
 VERIFY_SIGNATURE="${INPUT_VERIFYSIGNATURE:-true}"
 
-echo "Image Name: ${IMAGE_NAME}"
+########################################
+# Get service connection URL and prepend to image name
+########################################
+
+echo "Step 0: Processing service connection URL..."
+
+ENDPOINT_URL_VAR="ENDPOINT_URL_${ENDPOINT_ID}"
+ENDPOINT_URL="${!ENDPOINT_URL_VAR:-}"
+
+# Remove http:// or https:// prefix from URL if present
+if [[ -n "$ENDPOINT_URL" ]]; then
+    # Remove http:// or https://
+    REGISTRY_URL="${ENDPOINT_URL#http://}"
+    REGISTRY_URL="${REGISTRY_URL#https://}"
+    # Remove trailing slash if present
+    REGISTRY_URL="${REGISTRY_URL%/}"
+    
+    # If image name doesn't already start with registry URL, prepend it
+    if [[ ! "$IMAGE_NAME" =~ ^$REGISTRY_URL ]]; then
+        IMAGE_NAME="${REGISTRY_URL}/${IMAGE_NAME}"
+        echo "✓ Prepended registry URL: ${REGISTRY_URL}"
+    fi
+fi
+
+echo "Final Image Name: ${IMAGE_NAME}"
 echo "Image Tag: ${IMAGE_TAG}"
 echo "Allow Insecure Registry: ${ALLOW_INSECURE}"
 echo "Verify Signature: ${VERIFY_SIGNATURE}"

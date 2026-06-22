@@ -41,11 +41,13 @@ tfx extension create --manifest-globs vss-extension.json
 1. Project Settings → Service connections → New service connection
 2. Select "Cosign Signing Connection"
 3. Fill in:
-   - **Connection Name**: Your friendly name
-   - **Cosign Private Key**: Content of `cosign.key` file
-   - **Cosign Public Key**: Content of `cosign.pub` file
-   - **Cosign Password**: Password for the private key
-4. Save
+   - **Server URL**: Your registry URL (e.g., `https://harbor.company.com` or `http://registry.local:5000`)
+   - **Cosign Private Key**: Paste entire content of `cosign.key` file
+   - **Cosign Public Key**: Paste entire content of `cosign.pub` file
+   - **Cosign Password**: Enter the password for the private key
+4. Click "Verify and save"
+
+**Note**: The registry URL will be automatically prepended to your image name. You can use HTTP or HTTPS URLs - the protocol prefix will be removed automatically.
 
 ### 2. Use in Pipeline
 
@@ -53,18 +55,20 @@ tfx extension create --manifest-globs vss-extension.json
 - task: CosignSign@1
   inputs:
     cosignService: 'YourConnectionName'
-    imageName: 'registry.local/myapp'
+    imageName: 'project/myapp'
     imageTag: '$(Build.BuildId)'
     allowInsecureRegistry: true
     verifySignature: true
 ```
+
+**Note**: The registry URL from the service connection will be prepended automatically. If your service connection URL is `https://harbor.company.com`, and you specify `imageName: 'project/myapp'`, the final image will be `harbor.company.com/project/myapp`.
 
 ## Task Inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | cosignService | Yes | - | Service connection name |
-| imageName | Yes | - | Container image repository |
+| imageName | Yes | - | Image name without registry (e.g., project/app) |
 | imageTag | Yes | latest | Image tag to sign |
 | allowInsecureRegistry | No | true | Allow HTTP registries |
 | verifySignature | No | true | Verify after signing |
@@ -79,7 +83,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  imageName: 'harbor.company.com/project/app'
+  imageName: 'project/app'
   imageTag: '$(Build.BuildId)'
 
 stages:
@@ -109,12 +113,13 @@ stages:
 ## How It Works
 
 1. Retrieves credentials from service connection
-2. Creates temporary secure key files (600 permissions)
-3. Resolves image digest from name:tag
-4. Signs image digest with private key
-5. Verifies signature with public key (optional)
-6. Extracts identity with jq if available
-7. Securely cleans up (unsets variables, deletes files)
+2. Gets registry URL from service connection and prepends to image name
+3. Creates temporary secure key files (600 permissions)
+4. Resolves image digest from name:tag
+5. Signs image digest with private key
+6. Verifies signature with public key (optional)
+7. Extracts identity with jq if available
+8. Securely cleans up (unsets variables, deletes files)
 
 ## Manual Verification
 
