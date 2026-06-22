@@ -2,7 +2,7 @@
   "name": "cosign-sign-task",
   "version": "1.0.0",
   "description": "Azure DevOps task for signing container images with Cosign",
-  "main": "sign.sh",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"No tests specified\""
   },

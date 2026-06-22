@@ -71,8 +71,8 @@
     }
   ],
   "execution": {
-    "Bash3": {
-      "target": "sign.sh"
+    "Node10": {
+      "target": "index.js"
     }
   }
 }
