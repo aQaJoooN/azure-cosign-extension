@@ -36,8 +36,9 @@ tfx extension create --manifest-globs vss-extension.json
 
 ## Setup
 
-### 1. Create Service Connection
+### 1. Create Service Connections
 
+**Cosign Service Connection:**
 1. Project Settings → Service connections → New service connection
 2. Select "Cosign Signing Connection"
 3. Fill in:
@@ -47,29 +48,42 @@ tfx extension create --manifest-globs vss-extension.json
    - **Cosign Password**: Enter the password for the private key
 4. Click "Verify and save"
 
-**Note**: The registry URL will be automatically prepended to your image name. You can use HTTP or HTTPS URLs - the protocol prefix will be removed automatically.
+**Docker Registry Service Connection:**
+1. Project Settings → Service connections → New service connection
+2. Select "Docker Registry"
+3. Fill in your registry credentials
+4. Click "Verify and save"
+
+**Note**: The registry URLs can use HTTP or HTTPS - the protocol prefix will be removed automatically.
 
 ### 2. Use in Pipeline
 
 ```yaml
 - task: CosignSign@1
   inputs:
-    cosignService: 'YourConnectionName'
+    cosignService: 'YourCosignConnection'
+    dockerRegistryService: 'YourDockerRegistry'
     imageName: 'project/myapp'
     imageTag: '$(Build.BuildId)'
+    prependRegistryUrl: true
     allowInsecureRegistry: true
     verifySignature: true
 ```
 
-**Note**: The registry URL from the service connection will be prepended automatically. If your service connection URL is `https://harbor.company.com`, and you specify `imageName: 'project/myapp'`, the final image will be `harbor.company.com/project/myapp`.
+**Note**: 
+- The task requires **two service connections**: one for Cosign credentials and one for Docker registry authentication
+- If `prependRegistryUrl` is `true`, the registry URL from Cosign service connection will be prepended. If your Cosign service connection URL is `https://harbor.company.com`, and you specify `imageName: 'project/myapp'`, the final image will be `harbor.company.com/project/myapp`
+- If `prependRegistryUrl` is `false`, use the full image name including registry
 
 ## Task Inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| cosignService | Yes | - | Service connection name |
-| imageName | Yes | - | Image name without registry (e.g., project/app) |
+| cosignService | Yes | - | Cosign service connection name |
+| dockerRegistryService | Yes | - | Docker registry service connection |
+| imageName | Yes | - | Image name (e.g., project/app) |
 | imageTag | Yes | latest | Image tag to sign |
+| prependRegistryUrl | No | true | Prepend registry URL from Cosign connection |
 | allowInsecureRegistry | No | true | Allow HTTP registries |
 | verifySignature | No | true | Verify after signing |
 
@@ -106,20 +120,24 @@ stages:
     - task: CosignSign@1
       inputs:
         cosignService: 'CosignProd'
+        dockerRegistryService: 'HarborRegistry'
         imageName: '$(imageName)'
         imageTag: '$(imageTag)'
+        prependRegistryUrl: true
 ```
 
 ## How It Works
 
-1. Retrieves credentials from service connection
-2. Gets registry URL from service connection and prepends to image name
+1. Retrieves Cosign credentials from service connection
+2. Optionally prepends registry URL to image name (configurable)
 3. Creates temporary secure key files (600 permissions)
-4. Resolves image digest from name:tag
-5. Signs image digest with private key
-6. Verifies signature with public key (optional)
-7. Extracts identity with jq if available
-8. Securely cleans up (unsets variables, deletes files)
+4. Sets air-gapped environment variables
+5. **Logs into Docker registry** using registry service connection
+6. Resolves image digest from name:tag
+7. Signs image digest with private key
+8. Verifies signature with public key (optional)
+9. **Logs out from Docker registry**
+10. Securely cleans up (unsets variables, deletes files)
 
 ## Manual Verification
 

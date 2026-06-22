@@ -36,12 +36,20 @@
       "helpMarkDown": "Select the service connection containing Cosign private key and password"
     },
     {
+      "name": "dockerRegistryService",
+      "type": "connectedService:dockerregistry",
+      "label": "Docker Registry Service Connection",
+      "defaultValue": "",
+      "required": true,
+      "helpMarkDown": "Select the Docker registry service connection for authentication before signing"
+    },
+    {
       "name": "imageName",
       "type": "string",
       "label": "Image Name",
       "defaultValue": "",
       "required": true,
-      "helpMarkDown": "Container image name without registry (e.g., project/myapp). Registry URL from service connection will be prepended automatically."
+      "helpMarkDown": "Container image name without registry (e.g., project/myapp). Registry URL from service connection will be prepended automatically if enabled."
     },
     {
       "name": "imageTag",
@@ -50,6 +58,14 @@
       "defaultValue": "latest",
       "required": true,
       "helpMarkDown": "Image tag to sign (e.g., latest, v1.0.0, $(Build.BuildId))"
+    },
+    {
+      "name": "prependRegistryUrl",
+      "type": "boolean",
+      "label": "Prepend Registry URL to Image Name",
+      "defaultValue": "true",
+      "required": false,
+      "helpMarkDown": "Automatically prepend the registry URL from Cosign service connection to the image name"
     },
     {
       "name": "allowInsecureRegistry",

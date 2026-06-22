@@ -19,18 +19,19 @@ IMAGE_TAG="${INPUT_IMAGETAG}"
 ENDPOINT_ID="${INPUT_COSIGNSERVICE}"
 ALLOW_INSECURE="${INPUT_ALLOWINSECUREREGISTRY:-true}"
 VERIFY_SIGNATURE="${INPUT_VERIFYSIGNATURE:-true}"
+PREPEND_REGISTRY="${INPUT_PREPENDREGISTRYURL:-true}"
 
 ########################################
 # Get service connection URL and prepend to image name
 ########################################
 
-echo "Step 0: Processing service connection URL..."
+echo "Step 1: Processing service connection URL..."
 
 # Get URL from the clean variable passed by index.js
 ENDPOINT_URL="${COSIGN_ENDPOINT_URL:-}"
 
-# Remove http:// or https:// prefix from URL if present
-if [[ -n "$ENDPOINT_URL" ]]; then
+# Only prepend if enabled
+if [[ "$PREPEND_REGISTRY" == "true" && -n "$ENDPOINT_URL" ]]; then
     # Remove http:// or https://
     REGISTRY_URL="${ENDPOINT_URL#http://}"
     REGISTRY_URL="${REGISTRY_URL#https://}"
@@ -42,6 +43,8 @@ if [[ -n "$ENDPOINT_URL" ]]; then
         IMAGE_NAME="${REGISTRY_URL}/${IMAGE_NAME}"
         echo "✓ Prepended registry URL: ${REGISTRY_URL}"
     fi
+else
+    echo "✓ Using image name as provided (registry URL not prepended)"
 fi
 
 echo "Final Image Name: ${IMAGE_NAME}"
@@ -54,7 +57,7 @@ echo ""
 # Get secrets from service connection
 ########################################
 
-echo "Step 1: Retrieving credentials from service connection..."
+echo "Step 2: Retrieving credentials from service connection..."
 
 # Get credentials from clean variables passed by index.js
 COSIGN_PASSWORD="${COSIGN_KEY_PASSWORD:-}"
@@ -93,16 +96,16 @@ echo ""
 echo "##vso[task.setsecret]${COSIGN_PASSWORD}"
 
 ########################################
-# Step 2: Create secure temp directory
+# Step 3: Create secure temp directory
 ########################################
 
-echo "Step 2: Creating secure temporary directory..."
+echo "Step 3: Creating secure temporary directory..."
 
 TEMP_DIR="$(mktemp -d)"
 KEY_FILE="${TEMP_DIR}/cosign.key"
 PUB_FILE="${TEMP_DIR}/cosign.pub"
 
-echo "✓ Temporary directory created: ${TEMP_DIR}"
+echo "✓ Temporary directory created"
 echo ""
 
 ########################################
@@ -113,7 +116,15 @@ cleanup() {
     local exit_code=$?
     
     echo ""
-    echo "Step 7: Cleaning up sensitive data..."
+    echo "Step 9: Cleaning up..."
+    
+    # Docker logout
+    if [[ -n "${DOCKER_REGISTRY_URL:-}" ]]; then
+        echo "Logging out from Docker registry..."
+        if docker logout "${DOCKER_REGISTRY_URL}" 2>/dev/null; then
+            echo "✓ Docker logout successful"
+        fi
+    fi
     
     # Unset password environment variable
     if [[ -n "${COSIGN_PASSWORD:-}" ]]; then
@@ -165,10 +176,10 @@ trap cleanup EXIT INT TERM
 umask 077
 
 ########################################
-# Step 3: Write key files
+# Step 4: Write key files
 ########################################
 
-echo "Step 3: Creating key files..."
+echo "Step 4: Creating key files..."
 
 printf '%s' "$COSIGN_PRIVATE_KEY" > "$KEY_FILE"
 chmod 600 "$KEY_FILE"
@@ -180,10 +191,10 @@ echo "✓ Private and public key files created"
 echo ""
 
 ########################################
-# Step 4: Set environment variables
+# Step 5: Set environment variables
 ########################################
 
-echo "Step 4: Setting Cosign environment variables..."
+echo "Step 5: Setting Cosign environment variables..."
 
 # Export password for Cosign
 export COSIGN_PASSWORD
@@ -197,10 +208,42 @@ echo "✓ Environment variables configured for air-gapped mode"
 echo ""
 
 ########################################
-# Step 5: Find image digest
+# Step 6: Docker login
 ########################################
 
-echo "Step 5: Resolving image digest..."
+echo "Step 6: Logging into Docker registry..."
+
+DOCKER_REGISTRY_URL="${DOCKER_REGISTRY_URL:-}"
+DOCKER_USERNAME="${DOCKER_REGISTRY_USERNAME:-}"
+DOCKER_PASSWORD="${DOCKER_REGISTRY_PASSWORD:-}"
+
+if [[ -z "$DOCKER_REGISTRY_URL" || -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
+    echo "##vso[task.logissue type=error]Docker registry credentials not found"
+    exit 1
+fi
+
+# Mask Docker password in logs
+echo "##vso[task.setsecret]${DOCKER_PASSWORD}"
+
+# Remove protocol from registry URL for docker login
+DOCKER_LOGIN_URL="${DOCKER_REGISTRY_URL#http://}"
+DOCKER_LOGIN_URL="${DOCKER_LOGIN_URL#https://}"
+
+echo "Registry: ${DOCKER_LOGIN_URL}"
+
+if echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_LOGIN_URL}" -u "${DOCKER_USERNAME}" --password-stdin; then
+    echo "✓ Docker login successful"
+else
+    echo "##vso[task.logissue type=error]Docker login failed"
+    exit 1
+fi
+echo ""
+
+########################################
+# Step 7: Find image digest
+########################################
+
+echo "Step 7: Resolving image digest..."
 
 IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
 echo "Image reference: ${IMAGE_REF}"
@@ -235,10 +278,10 @@ echo "✓ Resolved digest reference: ${DIGEST_REF}"
 echo ""
 
 ########################################
-# Step 6: Sign the image
+# Step 8: Sign the image
 ########################################
 
-echo "Step 6: Signing image with Cosign..."
+echo "Step 8: Signing image with Cosign..."
 
 COSIGN_ARGS=(
     "sign"
@@ -266,7 +309,7 @@ echo ""
 ########################################
 
 if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
-    echo "Step 6.1: Verifying signature..."
+    echo "Step 8.1: Verifying signature..."
     
     VERIFY_ARGS=(
         "verify"
