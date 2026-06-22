@@ -24,7 +24,7 @@ const authParamPrefix = `ENDPOINT_AUTH_PARAMETER_${cosignService}_`;
 // Build the environment variable names for Docker registry service connection
 const dockerUrlVarName = `ENDPOINT_URL_${dockerRegistryService}`;
 const dockerAuthPrefix = `ENDPOINT_AUTH_PARAMETER_${dockerRegistryService}_`;
-const dockerAuthType = `ENDPOINT_AUTH_SCHEME_${dockerRegistryService}`;
+const dockerDataPrefix = `ENDPOINT_DATA_${dockerRegistryService}_`;
 
 // Create a clean environment with all needed variables
 const cleanEnv = { ...process.env };
@@ -39,9 +39,31 @@ cleanEnv.COSIGN_PUBLIC_KEY = process.env[`${authParamPrefix}COSIGNPUBLICKEY`] ||
 cleanEnv.COSIGN_KEY_PASSWORD = process.env[`${authParamPrefix}COSIGNPASSWORD`] || '';
 
 // Get Docker registry connection details
-const dockerRegistryUrl = process.env[dockerUrlVarName] || '';
-const dockerUsername = process.env[`${dockerAuthPrefix}USERNAME`] || process.env[`${dockerAuthPrefix}REGISTRY_USERNAME`] || '';
-const dockerPassword = process.env[`${dockerAuthPrefix}PASSWORD`] || process.env[`${dockerAuthPrefix}REGISTRY_PASSWORD`] || '';
+// Try multiple possible variable names for Docker registry URL
+let dockerRegistryUrl = process.env[dockerUrlVarName] || '';
+if (!dockerRegistryUrl) {
+    dockerRegistryUrl = process.env[`${dockerDataPrefix}REGISTRYURL`] || '';
+}
+if (!dockerRegistryUrl) {
+    dockerRegistryUrl = process.env[`${dockerAuthPrefix}REGISTRY`] || '';
+}
+
+// Get Docker credentials - try multiple possible variable names
+let dockerUsername = process.env[`${dockerAuthPrefix}USERNAME`] || '';
+if (!dockerUsername) {
+    dockerUsername = process.env[`${dockerAuthPrefix}REGISTRY_USERNAME`] || '';
+}
+if (!dockerUsername) {
+    dockerUsername = process.env[`${dockerDataPrefix}USERNAME`] || '';
+}
+
+let dockerPassword = process.env[`${dockerAuthPrefix}PASSWORD`] || '';
+if (!dockerPassword) {
+    dockerPassword = process.env[`${dockerAuthPrefix}REGISTRY_PASSWORD`] || '';
+}
+if (!dockerPassword) {
+    dockerPassword = process.env[`${dockerDataPrefix}PASSWORD`] || '';
+}
 
 cleanEnv.DOCKER_REGISTRY_URL = dockerRegistryUrl;
 cleanEnv.DOCKER_REGISTRY_USERNAME = dockerUsername;

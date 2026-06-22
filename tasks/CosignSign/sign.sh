@@ -119,9 +119,9 @@ cleanup() {
     echo "Step 9: Cleaning up..."
     
     # Docker logout
-    if [[ -n "${DOCKER_REGISTRY_URL:-}" ]]; then
+    if [[ -n "${DOCKER_LOGIN_URL:-}" ]]; then
         echo "Logging out from Docker registry..."
-        if docker logout "${DOCKER_REGISTRY_URL}" 2>/dev/null; then
+        if docker logout "${DOCKER_LOGIN_URL}" 2>/dev/null; then
             echo "✓ Docker logout successful"
         fi
     fi
@@ -217,7 +217,7 @@ DOCKER_REGISTRY_URL="${DOCKER_REGISTRY_URL:-}"
 DOCKER_USERNAME="${DOCKER_REGISTRY_USERNAME:-}"
 DOCKER_PASSWORD="${DOCKER_REGISTRY_PASSWORD:-}"
 
-if [[ -z "$DOCKER_REGISTRY_URL" || -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
+if [[ -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
     echo "##vso[task.logissue type=error]Docker registry credentials not found"
     exit 1
 fi
@@ -225,16 +225,29 @@ fi
 # Mask Docker password in logs
 echo "##vso[task.setsecret]${DOCKER_PASSWORD}"
 
-# Remove protocol from registry URL for docker login
-DOCKER_LOGIN_URL="${DOCKER_REGISTRY_URL#http://}"
-DOCKER_LOGIN_URL="${DOCKER_LOGIN_URL#https://}"
+# Determine the registry URL to use for login
+# If no registry URL provided, extract from image name
+if [[ -z "$DOCKER_REGISTRY_URL" ]]; then
+    # Extract registry from image name (everything before first /)
+    if [[ "$IMAGE_NAME" =~ ^([^/]+)/(.+)$ ]]; then
+        DOCKER_LOGIN_URL="${BASH_REMATCH[1]}"
+        echo "Using registry from image name: ${DOCKER_LOGIN_URL}"
+    else
+        echo "##vso[task.logissue type=error]Cannot determine registry URL"
+        exit 1
+    fi
+else
+    # Remove protocol from registry URL for docker login
+    DOCKER_LOGIN_URL="${DOCKER_REGISTRY_URL#http://}"
+    DOCKER_LOGIN_URL="${DOCKER_LOGIN_URL#https://}"
+    DOCKER_LOGIN_URL="${DOCKER_LOGIN_URL%/}"
+    echo "Using registry from service connection: ${DOCKER_LOGIN_URL}"
+fi
 
-echo "Registry: ${DOCKER_LOGIN_URL}"
-
-if echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_LOGIN_URL}" -u "${DOCKER_USERNAME}" --password-stdin; then
+if echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_LOGIN_URL}" -u "${DOCKER_USERNAME}" --password-stdin 2>&1; then
     echo "✓ Docker login successful"
 else
-    echo "##vso[task.logissue type=error]Docker login failed"
+    echo "##vso[task.logissue type=error]Docker login failed to ${DOCKER_LOGIN_URL}"
     exit 1
 fi
 echo ""
