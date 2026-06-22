@@ -41,12 +41,24 @@ cleanEnv.COSIGN_KEY_PASSWORD = process.env[`${authParamPrefix}COSIGNPASSWORD`] |
 // Get Docker registry connection details
 // Try multiple possible variable names for Docker registry URL
 let dockerRegistryUrl = process.env[dockerUrlVarName] || '';
+console.log(`DEBUG: ENDPOINT_URL_${dockerRegistryService} = ${dockerRegistryUrl}`);
+
 if (!dockerRegistryUrl) {
     dockerRegistryUrl = process.env[`${dockerDataPrefix}REGISTRYURL`] || '';
+    console.log(`DEBUG: ENDPOINT_DATA_${dockerRegistryService}_REGISTRYURL = ${dockerRegistryUrl}`);
 }
 if (!dockerRegistryUrl) {
     dockerRegistryUrl = process.env[`${dockerAuthPrefix}REGISTRY`] || '';
+    console.log(`DEBUG: ENDPOINT_AUTH_PARAMETER_${dockerRegistryService}_REGISTRY = ${dockerRegistryUrl}`);
 }
+
+// Additional checks for Others registry type
+if (!dockerRegistryUrl) {
+    dockerRegistryUrl = process.env[`${dockerAuthPrefix}LOGINSERVER`] || '';
+    console.log(`DEBUG: ENDPOINT_AUTH_PARAMETER_${dockerRegistryService}_LOGINSERVER = ${dockerRegistryUrl}`);
+}
+
+console.log(`DEBUG: Final Docker Registry URL: ${dockerRegistryUrl}`);
 
 // Get Docker credentials - try multiple possible variable names
 let dockerUsername = process.env[`${dockerAuthPrefix}USERNAME`] || '';
@@ -56,6 +68,8 @@ if (!dockerUsername) {
 if (!dockerUsername) {
     dockerUsername = process.env[`${dockerDataPrefix}USERNAME`] || '';
 }
+
+console.log(`DEBUG: Docker Username: ${dockerUsername}`);
 
 let dockerPassword = process.env[`${dockerAuthPrefix}PASSWORD`] || '';
 if (!dockerPassword) {

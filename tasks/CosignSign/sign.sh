@@ -217,6 +217,9 @@ DOCKER_REGISTRY_URL="${DOCKER_REGISTRY_URL:-}"
 DOCKER_USERNAME="${DOCKER_REGISTRY_USERNAME:-}"
 DOCKER_PASSWORD="${DOCKER_REGISTRY_PASSWORD:-}"
 
+echo "DEBUG: Docker Registry URL from service connection: '${DOCKER_REGISTRY_URL}'"
+echo "DEBUG: Docker Username: '${DOCKER_USERNAME}'"
+
 if [[ -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
     echo "##vso[task.logissue type=error]Docker registry credentials not found"
     exit 1
@@ -226,14 +229,14 @@ fi
 echo "##vso[task.setsecret]${DOCKER_PASSWORD}"
 
 # Determine the registry URL to use for login
-# If no registry URL provided, extract from image name
-if [[ -z "$DOCKER_REGISTRY_URL" ]]; then
+# If no registry URL provided or it's hub.docker.com, extract from image name
+if [[ -z "$DOCKER_REGISTRY_URL" ]] || [[ "$DOCKER_REGISTRY_URL" == *"hub.docker.com"* ]] || [[ "$DOCKER_REGISTRY_URL" == *"docker.io"* ]]; then
     # Extract registry from image name (everything before first /)
     if [[ "$IMAGE_NAME" =~ ^([^/]+)/(.+)$ ]]; then
         DOCKER_LOGIN_URL="${BASH_REMATCH[1]}"
-        echo "Using registry from image name: ${DOCKER_LOGIN_URL}"
+        echo "Extracted registry from image name: ${DOCKER_LOGIN_URL}"
     else
-        echo "##vso[task.logissue type=error]Cannot determine registry URL"
+        echo "##vso[task.logissue type=error]Cannot determine registry URL from image name"
         exit 1
     fi
 else
@@ -244,8 +247,10 @@ else
     echo "Using registry from service connection: ${DOCKER_LOGIN_URL}"
 fi
 
+echo "Attempting Docker login to: ${DOCKER_LOGIN_URL}"
+
 if echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_LOGIN_URL}" -u "${DOCKER_USERNAME}" --password-stdin 2>&1; then
-    echo "✓ Docker login successful"
+    echo "✓ Docker login successful to ${DOCKER_LOGIN_URL}"
 else
     echo "##vso[task.logissue type=error]Docker login failed to ${DOCKER_LOGIN_URL}"
     exit 1
