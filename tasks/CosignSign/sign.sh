@@ -26,8 +26,8 @@ VERIFY_SIGNATURE="${INPUT_VERIFYSIGNATURE:-true}"
 
 echo "Step 0: Processing service connection URL..."
 
-ENDPOINT_URL_VAR="ENDPOINT_URL_${ENDPOINT_ID}"
-ENDPOINT_URL="${!ENDPOINT_URL_VAR:-}"
+# Get URL from the clean variable passed by index.js
+ENDPOINT_URL="${COSIGN_ENDPOINT_URL:-}"
 
 # Remove http:// or https:// prefix from URL if present
 if [[ -n "$ENDPOINT_URL" ]]; then
@@ -56,13 +56,10 @@ echo ""
 
 echo "Step 1: Retrieving credentials from service connection..."
 
-COSIGN_PASSWORD_VAR="ENDPOINT_AUTH_PARAMETER_${ENDPOINT_ID}_COSIGNPASSWORD"
-COSIGN_PRIVATE_KEY_VAR="ENDPOINT_AUTH_PARAMETER_${ENDPOINT_ID}_COSIGNPRIVATEKEY"
-COSIGN_PUBLIC_KEY_VAR="ENDPOINT_AUTH_PARAMETER_${ENDPOINT_ID}_COSIGNPUBLICKEY"
-
-COSIGN_PASSWORD="${!COSIGN_PASSWORD_VAR:-}"
-COSIGN_PRIVATE_KEY="${!COSIGN_PRIVATE_KEY_VAR:-}"
-COSIGN_PUBLIC_KEY="${!COSIGN_PUBLIC_KEY_VAR:-}"
+# Get credentials from clean variables passed by index.js
+COSIGN_PASSWORD="${COSIGN_KEY_PASSWORD:-}"
+COSIGN_PRIVATE_KEY="${COSIGN_PRIVATE_KEY:-}"
+COSIGN_PUBLIC_KEY="${COSIGN_PUBLIC_KEY:-}"
 
 ########################################
 # Validate credentials
