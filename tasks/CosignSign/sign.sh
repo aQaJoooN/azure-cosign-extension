@@ -377,6 +377,7 @@ if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
         # Extract and display identity if jq is available
         if command -v jq &> /dev/null; then
             IDENTITY=$(echo "$VERIFY_OUTPUT" | jq -r '.[].critical.identity.docker-reference' 2>/dev/null || true)
+            echo "Image Signature Identity is ${IDENTITY}"
             if [[ -n "$IDENTITY" ]]; then
                 echo "  Identity: ${IDENTITY}"
             fi
