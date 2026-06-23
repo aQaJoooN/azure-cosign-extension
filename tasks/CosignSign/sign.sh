@@ -373,11 +373,9 @@ if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
     # Run verification and capture output
     if VERIFY_OUTPUT=$(cosign "${VERIFY_ARGS[@]}" 2>&1); then
         echo "✓ Signature verified successfully"
-        echo "${VERIFY_OUTPUT}"
-        echo ""
         # Extract and display identity if jq is available
         if command -v jq &> /dev/null; then
-            IDENTITY=$(echo "$VERIFY_OUTPUT" | jq -r '.[].critical.identity.docker-reference' 2>/dev/null || true)
+            IDENTITY=$(echo "$VERIFY_OUTPUT" | jq .[].critical.identity.docker-reference 2>/dev/null || true)
             echo "Image Signature Identity is ${IDENTITY}"
             if [[ -n "$IDENTITY" ]]; then
                 echo "  Identity: ${IDENTITY}"
