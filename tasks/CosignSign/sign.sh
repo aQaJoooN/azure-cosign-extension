@@ -376,7 +376,7 @@ if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
 
         # Extract and display identity if jq is available
         if command -v jq &> /dev/null; then
-            IDENTITY=$( cosign "${VERIFY_ARGS[@]} | jq -r '.[].critical.identity' 2>/dev/null || true)
+            IDENTITY=$( cosign "${VERIFY_ARGS[@]}" | jq -r '.[].critical.identity' 2>/dev/null || true)
             if [[ -n "$IDENTITY" ]]; then
                 echo "Image Signature Identity is "
                 echo "${IDENTITY}"
