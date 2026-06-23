@@ -118,6 +118,10 @@
   ],
   "files": [
     {
+      "path": "overview.md",
+      "addressable": true
+    },
+    {
       "path": "tasks"
     },
     {
