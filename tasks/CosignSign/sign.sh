@@ -386,7 +386,6 @@ if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
         echo "##vso[task.logissue type=warning]Signature verification failed"
         echo "$VERIFY_OUTPUT"
     fi
-    echo ""
 fi
 
 ########################################
