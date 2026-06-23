@@ -116,6 +116,7 @@
       }
     }
   ],
+  "overview": "overview.md",
   "files": [
     {
       "path": "overview.md",
