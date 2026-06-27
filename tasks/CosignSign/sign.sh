@@ -22,6 +22,25 @@ VERIFY_SIGNATURE="${INPUT_VERIFYSIGNATURE:-true}"
 PREPEND_REGISTRY="${INPUT_PREPENDREGISTRYURL:-true}"
 
 ########################################
+# check cosign is installed and version is 2.x.x
+########################################
+
+if command -v cosign >/dev/null 2>&1; then
+    VERSION=$(cosign version 2>/dev/null | grep -oE 'v?2\.[0-9]+\.[0-9]+')
+
+    if [[ -n "$VERSION" ]]; then
+        echo "Cosign exists and version is: $VERSION"
+    else
+        echo "Cosign exists but is NOT version 2.x.x"
+        cosign version
+    fi
+else
+    echo "##vso[task.logissue type=error]Cosign could not be found. Please install Cosign v2.x.x on the agent."
+    echo "##vso[task.complete result=Failed;]"
+    exit 1
+fi
+
+########################################
 # Get service connection URL and prepend to image name
 ########################################
 
@@ -220,11 +239,13 @@ DOCKER_PASSWORD="${DOCKER_REGISTRY_PASSWORD:-}"
 # Check if docker is available
 if ! command -v docker &> /dev/null; then
     echo "##vso[task.logissue type=error]Docker command not found. Please ensure Docker is installed on the agent."
+    echo "##vso[task.complete result=Failed;]"
     exit 1
 fi
 
 if [[ -z "$DOCKER_USERNAME" || -z "$DOCKER_PASSWORD" ]]; then
     echo "##vso[task.logissue type=error]Docker registry credentials not found"
+    echo "##vso[task.complete result=Failed;]"
     exit 1
 fi
 
@@ -240,6 +261,7 @@ if [[ -z "$DOCKER_REGISTRY_URL" ]] || [[ "$DOCKER_REGISTRY_URL" == *"hub.docker.
         echo "Using registry from image name: ${DOCKER_LOGIN_URL}"
     else
         echo "##vso[task.logissue type=error]Cannot determine registry URL from image name"
+        echo "##vso[task.complete result=Failed;]"
         exit 1
     fi
 else
@@ -254,6 +276,7 @@ if echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_LOGIN_URL}" -u "${DOCKER_U
     echo "✓ Docker login successful"
 else
     echo "##vso[task.logissue type=error]Docker login failed to ${DOCKER_LOGIN_URL}"
+    echo "##vso[task.complete result=Failed;]"
     exit 1
 fi
 echo ""
@@ -269,6 +292,7 @@ IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
 # Check if docker is available
 if ! command -v docker &> /dev/null; then
     echo "##vso[task.logissue type=error]Docker command not found. Please ensure Docker is installed on the agent."
+    echo "##vso[task.complete result=Failed;]"
     exit 1
 fi
 
@@ -279,6 +303,7 @@ if ! docker inspect "$IMAGE_REF" &> /dev/null; then
         echo "✓ Image pulled successfully"
     else
         echo "##vso[task.logissue type=error]Failed to pull image. Ensure the image exists in the registry."
+        echo "##vso[task.complete result=Failed;]"
         exit 1
     fi
 else
@@ -298,6 +323,7 @@ echo "Image reference: ${IMAGE_REF}"
 # Check if docker is available
 if ! command -v docker &> /dev/null; then
     echo "##vso[task.logissue type=error]Docker command not found. Please ensure Docker is installed on the agent."
+    echo "##vso[task.complete result=Failed;]"
     exit 1
 fi
 
@@ -318,6 +344,7 @@ fi
 
 if [[ -z "$DIGEST_REF" ]]; then
     echo "##vso[task.logissue type=error]Failed to resolve image digest. Ensure the image exists and is accessible."
+    echo "##vso[task.complete result=Failed;]"
     exit 1
 fi
 
@@ -345,6 +372,7 @@ COSIGN_ARGS+=("$DIGEST_REF")
 
 if ! cosign "${COSIGN_ARGS[@]}"; then
     echo "##vso[task.logissue type=error]Failed to sign image"
+    echo "##vso[task.complete result=Failed;]"
     exit 1
 fi
 
